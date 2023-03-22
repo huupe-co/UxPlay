@@ -1,2 +1,2 @@
-Run 
-./build/uxplay 
+#!/bin/bash 
+./build/uxplay -n Huupe -nh -fs

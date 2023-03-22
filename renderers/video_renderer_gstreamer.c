@@ -349,7 +349,6 @@ gboolean gstreamer_pipeline_bus_callback(GstBus *bus, GstMessage *message, gpoin
         break;
 #ifdef  X_DISPLAY_FIX
     case GST_MESSAGE_ELEMENT:
-        //logger_log(logger, LOGGER_INFO, "MESS %s %p %p", message->src->name, renderer->gst_window, renderer->gst_window->window);
         if (renderer->gst_window && renderer->gst_window->window) {
             GstNavigationMessageType message_type = gst_navigation_message_get_type (message);
             if (message_type == GST_NAVIGATION_MESSAGE_EVENT) {

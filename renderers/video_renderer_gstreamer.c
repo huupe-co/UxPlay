@@ -30,7 +30,7 @@
 #include "x_display_fix.h"
 static bool fullscreen = false;
 static bool alt_keypress = false;
-#define MAX_X11_SEARCH_ATTEMPTS 5   /*should be less than 256 */
+#define MAX_X11_SEARCH_ATTEMPTS 200   /*should be less than 256 */
 static unsigned char X11_search_attempts; 
 #endif
 
@@ -182,12 +182,13 @@ void  video_renderer_init(logger_t *render_logger, const char *server_name, vide
 
     renderer->sink = gst_bin_get_by_name (GST_BIN (renderer->pipeline), "video_sink");
     g_assert(renderer->sink);
-
+    logger_log(logger, LOGGER_INFO, "Try video fix for X11");
 #ifdef X_DISPLAY_FIX
     fullscreen = *initial_fullscreen;
     renderer->server_name = server_name;
     renderer->gst_window = NULL;
     bool x_display_fix = false;
+    logger_log(logger, LOGGER_INFO, "video is fix for X11 %s", videosink);
     /* only include X11 videosinks that provide fullscreen mode, or need ZOOMFIX */
     /* limit searching for X11 Windows in case autovideosink selects an incompatible videosink */
     if (strncmp(videosink,"autovideosink", strlen("autovideosink")) == 0 ||
@@ -197,10 +198,12 @@ void  video_renderer_init(logger_t *render_logger, const char *server_name, vide
         x_display_fix = true;
     }
     if (x_display_fix) {
+        logger_log(logger, LOGGER_INFO, "Apply video fix for X11");
         renderer->gst_window = calloc(1, sizeof(X11_Window_t));
         g_assert(renderer->gst_window);
         get_X11_Display(renderer->gst_window);
         if (!renderer->gst_window->display) {
+            logger_log(logger, LOGGER_INFO, "No display disable fix for X11");
             free(renderer->gst_window);
             renderer->gst_window = NULL;
         }
@@ -346,6 +349,7 @@ gboolean gstreamer_pipeline_bus_callback(GstBus *bus, GstMessage *message, gpoin
         break;
 #ifdef  X_DISPLAY_FIX
     case GST_MESSAGE_ELEMENT:
+        //logger_log(logger, LOGGER_INFO, "MESS %s %p %p", message->src->name, renderer->gst_window, renderer->gst_window->window);
         if (renderer->gst_window && renderer->gst_window->window) {
             GstNavigationMessageType message_type = gst_navigation_message_get_type (message);
             if (message_type == GST_NAVIGATION_MESSAGE_EVENT) {
@@ -356,6 +360,7 @@ gboolean gstreamer_pipeline_bus_callback(GstBus *bus, GstMessage *message, gpoin
                     switch (event_type) {
                     case GST_NAVIGATION_EVENT_KEY_PRESS:
                         if (gst_navigation_event_parse_key_event (event, &key)) {
+                            logger_log(logger, LOGGER_INFO, "KEY %s", key);
                             if ((strcmp (key, "F11") == 0) || (alt_keypress && strcmp (key, "Return") == 0)) {
                                 fullscreen = !(fullscreen);
                                 set_fullscreen(renderer->gst_window, &fullscreen);

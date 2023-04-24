@@ -53,6 +53,7 @@
 #include "lib/dnssd.h"
 #include "renderers/video_renderer.h"
 #include "renderers/audio_renderer.h"
+#include "uxplay-lib.h"
 
 #define VERSION "1.63"
 
@@ -116,6 +117,7 @@ static int max_connections = 2;
 static unsigned short raop_port;
 static unsigned short airplay_port;
 static uint64_t remote_clock_offset = 0;
+static struct uxplay_config app_config;
 
 /* 95 byte png file with a 1x1 white square (single pixel): placeholder for coverart*/
 static const unsigned char empty_image[] = {
@@ -132,7 +134,14 @@ size_t write_coverart(const char *filename, const void *image, size_t len) {
     fclose(fp);
     return count;
 }
-  
+
+static void update_status(const char *status_string, const char *options) {
+    if (!app_config.status_callback) {
+        return;
+    }
+    app_config.status_callback(status_string, options);
+}  
+
 static void dump_audio_to_file(unsigned char *data, int datalen, unsigned char type) {
     if (!audio_dumpfile && audio_type != previous_audio_type) {
         char suffix[20];
@@ -361,75 +370,6 @@ static std::string random_mac () {
     return mac_address;
 }
 
-static void print_info (char *name) {
-    printf("UxPlay %s: An open-source AirPlay mirroring server based on RPiPlay\n", VERSION);
-    printf("Usage: %s [-n name] [-s wxh] [-p [n]]\n", name);
-    printf("Options:\n");
-    printf("-n name   Specify the network name of the AirPlay server\n");
-    printf("-nh       Do not add \"@hostname\" at the end of the AirPlay server name\n");
-    printf("-vsync [x]Mirror mode: sync audio to video (default: stream w/o sync)\n");
-    printf("          x is optional audio delay in millisecs, can be neg., decimal\n");
-    printf("-async [x]Audio-Only mode: sync audio to client video (default: no sync)\n");
-    printf("-s wxh[@r]Set display resolution [refresh_rate] default 1920x1080[@60]\n");
-    printf("-o        Set display \"overscanned\" mode on (not usually needed)\n");
-    printf("-fs       Full-screen (only works with X11, Wayland and VAAPI)\n");
-    printf("-p        Use legacy ports UDP 6000:6001:7011 TCP 7000:7001:7100\n");
-    printf("-p n      Use TCP and UDP ports n,n+1,n+2. range %d-%d\n", LOWEST_ALLOWED_PORT, HIGHEST_PORT);
-    printf("          use \"-p n1,n2,n3\" to set each port, \"n1,n2\" for n3 = n2+1\n");
-    printf("          \"-p tcp n\" or \"-p udp n\" sets TCP or UDP ports separately\n");
-    printf("-avdec    Force software h264 video decoding with libav decoder\n"); 
-    printf("-vp ...   Choose the GSteamer h264 parser: default \"h264parse\"\n");
-    printf("-vd ...   Choose the GStreamer h264 decoder; default \"decodebin\"\n");
-    printf("          choices: (software) avdec_h264; (hardware) v4l2h264dec,\n");
-    printf("          nvdec, nvh264dec, vaapih64dec, vtdec,etc.\n");
-    printf("          choices: avdec_h264,vaapih264dec,nvdec,nvh264dec,v4l2h264dec\n");
-    printf("-vc ...   Choose the GStreamer videoconverter; default \"videoconvert\"\n");
-    printf("          another choice when using v4l2h264decode: v4l2convert\n");
-    printf("-vs ...   Choose the GStreamer videosink; default \"autovideosink\"\n");
-    printf("          some choices: ximagesink,xvimagesink,vaapisink,glimagesink,\n");
-    printf("          gtksink,waylandsink,osximagesink,kmssink,d3d11videosink etc.\n");
-    printf("-vs 0     Streamed audio only, with no video display window\n");
-    printf("-v4l2     Use Video4Linux2 for GPU hardware h264 decoding\n");
-    printf("-bt709    A workaround (bt709 color) that may be needed with -rpi\n"); 
-    printf("-rpi      Same as \"-v4l2\" (for RPi=Raspberry Pi).\n");
-    printf("-rpigl    Same as \"-rpi -vs glimagesink\" for RPi.\n");
-    printf("-rpifb    Same as \"-rpi -vs kmssink\" for RPi using framebuffer.\n");
-    printf("-rpiwl    Same as \"-rpi -vs waylandsink\" for RPi using Wayland.\n");
-    printf("-as ...   Choose the GStreamer audiosink; default \"autoaudiosink\"\n");
-    printf("          some choices:pulsesink,alsasink,pipewiresink,jackaudiosink,\n");
-    printf("          osssink,oss4sink,osxaudiosink,wasapisink,directsoundsink.\n");
-    printf("-as 0     (or -a)  Turn audio off, streamed video only\n");
-    printf("-al x     Audio latency in seconds (default 0.25) reported to client.\n");
-    printf("-ca <fn>  In Airplay Audio (ALAC) mode, write cover-art to file <fn>\n");
-    printf("-reset n  Reset after 3n seconds client silence (default %d, 0=never)\n", NTP_TIMEOUT_LIMIT);
-    printf("-nc       do Not Close video window when client stops mirroring\n");
-    printf("-nohold   Drop current connection when new client connects.\n");
-    printf("-FPSdata  Show video-streaming performance reports sent by client.\n");
-    printf("-fps n    Set maximum allowed streaming framerate, default 30\n");
-    printf("-f {H|V|I}Horizontal|Vertical flip, or both=Inversion=rotate 180 deg\n");
-    printf("-r {R|L}  Rotate 90 degrees Right (cw) or Left (ccw)\n");
-    printf("-m        Use random MAC address (use for concurrent UxPlay's)\n");
-    printf("-vdmp [n] Dump h264 video output to \"fn.h264\"; fn=\"videodump\",change\n");
-    printf("          with \"-vdmp [n] filename\". If [n] is given, file fn.x.h264\n");
-    printf("          x=1,2,.. opens whenever a new SPS/PPS NAL arrives, and <=n\n");
-    printf("          NAL units are dumped.\n");
-    printf("-admp [n] Dump audio output to \"fn.x.fmt\", fmt ={aac, alac, aud}, x\n");
-    printf("          =1,2,..; fn=\"audiodump\"; change with \"-admp [n] filename\".\n");
-    printf("          x increases when audio format changes. If n is given, <= n\n");
-    printf("          audio packets are dumped. \"aud\"= unknown format.\n");
-    printf("-d        Enable debug logging\n");
-    printf("-v        Displays version information\n");
-    printf("-h        Displays this help\n");
-}
-
-bool option_has_value(const int i, const int argc, std::string option, const char *next_arg) {
-    if (i >= argc - 1 || next_arg[0] == '-') {
-        LOGE("invalid: \"%s\" had no argument", option.c_str());
-        return false;
-     }
-    return true;
-}
-
 static bool get_display_settings (std::string value, unsigned short *w, unsigned short *h, unsigned short *r) {
     // assume str  = wxh@r is valid if w and h are positive decimal integers
     // with no more than 4 digits, r < 256 (stored in one byte).
@@ -531,272 +471,6 @@ static bool get_videorotate (const char *str, videoflip_t *videoflip) {
             return false;
     }
     return true;
-}
-
-static void append_hostname(std::string &server_name) {
-#ifdef _WIN32   /*modification for compilation on Windows */
-    char buffer[256] = "";
-    unsigned long size = sizeof(buffer);
-    if (GetComputerNameA(buffer, &size)) {
-        std::string name = server_name;
-        name.append("@");
-        name.append(buffer);
-        server_name = name;
-    }
-#else
-    struct utsname buf;
-    if (!uname(&buf)) {
-        std::string name = server_name;
-        name.append("@");
-        name.append(buf.nodename);
-        server_name = name;
-    }
-#endif
-}
-
-static void parse_arguments (int argc, char *argv[]) {
-    // Parse arguments
-    for (int i = 1; i < argc; i++) {
-        std::string arg(argv[i]);
-        if (arg == "-n") {
-            if (!option_has_value(i, argc, arg, argv[i+1])) exit(1);
-            server_name = std::string(argv[++i]);
-        } else if (arg == "-nh") {
-            do_append_hostname = false;
-        } else if (arg == "-async") {
-            audio_sync = true;
-	    if (i <  argc - 1) {
-                char *end;
-                int n = (int) (strtof(argv[i + 1], &end) * 1000);
-                if (*end == '\0') {
-                    i++;
-                    if (n > -SECOND_IN_USECS && n < SECOND_IN_USECS) {
-                        audio_delay_alac = n * 1000; /* units are nsecs */
-                    } else {
-		      fprintf(stderr, "invalid -async %s: requested delays must be smaller than +/- 1000 millisecs\n", argv[i] );
-                        exit (1);
-                    }
-                }
-            }
-        } else if (arg == "-vsync") {
-            video_sync = true;
-	    if (i <  argc - 1) {
-                char *end;
-                int n = (int) (strtof(argv[i + 1], &end) * 1000);
-                if (*end == '\0') {
-                    i++;
-                    if (n > -SECOND_IN_USECS && n < SECOND_IN_USECS) {
-                        audio_delay_aac = n * 1000;     /* units are nsecs */
-                    } else {
-		      fprintf(stderr, "invalid -vsync %s: requested delays must be smaller than +/- 1000 millisecs\n", argv[i]);
-                        exit (1);
-                    }
-                }
-            }
-        } else if (arg == "-s") {
-            if (!option_has_value(i, argc, argv[i], argv[i+1])) exit(1);
-            std::string value(argv[++i]);
-            if (!get_display_settings(value, &display[0], &display[1], &display[2])) {
-                fprintf(stderr, "invalid \"-s %s\"; -s wxh : max w,h=9999; -s wxh@r : max r=255\n",
-                        argv[i]);
-                exit(1);
-            }
-        } else if (arg == "-fps") {
-            if (!option_has_value(i, argc, arg, argv[i+1])) exit(1);
-            unsigned int n = 255;
-            if (!get_value(argv[++i], &n)) {
-                fprintf(stderr, "invalid \"-fps %s\"; -fps n : max n=255, default n=30\n", argv[i]);
-                exit(1);
-            }
-            display[3] = (unsigned short) n;
-        } else if (arg == "-o") {
-            display[4] = 1;
-        } else if (arg == "-f") {
-            if (!option_has_value(i, argc, arg, argv[i+1])) exit(1);
-            if (!get_videoflip(argv[++i], &videoflip[0])) {
-                fprintf(stderr,"invalid \"-f %s\" , unknown flip type, choices are H, V, I\n",argv[i]);
-                exit(1);
-            }
-        } else if (arg == "-r") {
-            if (!option_has_value(i, argc, arg, argv[i+1])) exit(1);
-            if (!get_videorotate(argv[++i], &videoflip[1])) {
-                fprintf(stderr,"invalid \"-r %s\" , unknown rotation  type, choices are R, L\n",argv[i]);
-                exit(1);
-            }
-        } else if (arg == "-p") {
-            if (i == argc - 1 || argv[i + 1][0] == '-') {
-                tcp[0] = 7100; tcp[1] = 7000; tcp[2] = 7001;
-                udp[0] = 7011; udp[1] = 6001; udp[2] = 6000;
-                continue;
-            }
-            std::string value(argv[++i]);
-            if (value == "tcp") {
-                arg.append(" tcp");
-                if(!get_ports(3, arg, argv[++i], tcp)) exit(1);
-            } else if (value == "udp") {
-                arg.append( " udp");
-                if(!get_ports(3, arg, argv[++i], udp)) exit(1);
-            } else {
-                if(!get_ports(3, arg, argv[i], tcp)) exit(1);
-                for (int j = 1; j < 3; j++) {
-                    udp[j] = tcp[j];
-                }
-            }
-        } else if (arg == "-m") {
-            use_random_hw_addr  = true;
-        } else if (arg == "-a") {
-            use_audio = false;
-        } else if (arg == "-d") {
-            debug_log = !debug_log;
-        } else if (arg == "-h"  || arg == "--help" || arg == "-?" || arg == "-help") {
-            print_info(argv[0]);
-            exit(0);
-        } else if (arg == "-v") {
-            printf("UxPlay version %s; for help, use option \"-h\"\n", VERSION);
-            exit(0);
-        } else if (arg == "-vp") {
-            if (!option_has_value(i, argc, arg, argv[i+1])) exit(1);
-            video_parser.erase();
-            video_parser.append(argv[++i]);
-        } else if (arg == "-vd") {
-            if (!option_has_value(i, argc, arg, argv[i+1])) exit(1);
-            video_decoder.erase();
-            video_decoder.append(argv[++i]);
-        } else if (arg == "-vc") {
-            if (!option_has_value(i, argc, arg, argv[i+1])) exit(1);
-            video_converter.erase();
-            video_converter.append(argv[++i]);
-        } else if (arg == "-vs") {
-            if (!option_has_value(i, argc, arg, argv[i+1])) exit(1);
-            videosink.erase();
-            videosink.append(argv[++i]);
-        } else if (arg == "-as") {
-            if (!option_has_value(i, argc, arg, argv[i+1])) exit(1);
-            audiosink.erase();
-            audiosink.append(argv[++i]);
-        } else if (arg == "-t") {
-            fprintf(stderr,"The uxplay option \"-t\" has been removed: it was a workaround for an  Avahi issue.\n");
-            fprintf(stderr,"The correct solution is to open network port UDP 5353 in the firewall for mDNS queries\n");
-            exit(1);
-        } else if (arg == "-nc") {
-            new_window_closing_behavior = false;
-        } else if (arg == "-avdec") {
-            video_parser.erase();
-            video_parser = "h264parse";
-            video_decoder.erase();
-            video_decoder = "avdec_h264";
-            video_converter.erase();
-            video_converter = "videoconvert";
-        } else if (arg == "-v4l2" || arg == "-rpi") {
-            if (arg == "-rpi") {
-                LOGI("*** -rpi no longer includes -bt709: add it if needed");
-            }
-            video_decoder.erase();
-            video_decoder = "v4l2h264dec";
-            video_converter.erase();
-            video_converter = "v4l2convert";
-        } else if (arg == "-rpifb") {
-            LOGI("*** -rpifb no longer includes -bt709: add it if needed");
-            video_decoder.erase();
-            video_decoder = "v4l2h264dec";
-            video_converter.erase();
-            video_converter = "v4l2convert";
-            videosink.erase();
-            videosink = "kmssink";
-        } else if (arg == "-rpigl") {
-            LOGI("*** -rpigl does not include -bt709: add it if needed");
-            video_decoder.erase();
-            video_decoder = "v4l2h264dec";
-            video_converter.erase();
-            video_converter = "v4l2convert";
-            videosink.erase();
-            videosink = "glimagesink";
-        } else if (arg == "-rpiwl" ) {
-            LOGI("*** -rpiwl no longer includes -bt709: add it if needed");
-            video_decoder.erase();
-            video_decoder = "v4l2h264dec";
-            video_converter.erase();
-            video_converter = "v4l2convert";
-            videosink.erase();
-            videosink = "waylandsink";
-        } else if (arg == "-fs" ) {
-            fullscreen = true;
-	} else if (arg == "-FPSdata") {
-            show_client_FPS_data = true;
-        } else if (arg == "-reset") {
-            max_ntp_timeouts = 0;
-            if (!get_value(argv[++i], &max_ntp_timeouts)) {
-                fprintf(stderr, "invalid \"-reset %s\"; -reset n must have n >= 0,  default n = %d\n", argv[i], NTP_TIMEOUT_LIMIT);
-                exit(1);
-            }
-        } else if (arg == "-vdmp") {
-            dump_video = true;
-            if (i < argc - 1 && *argv[i+1] != '-') {
-                unsigned int n = 0;
-                if (get_value (argv[++i], &n)) {
-                    if (n == 0) {
-                        fprintf(stderr, "invalid \"-vdmp 0 %s\"; -vdmp n  needs a non-zero value of n\n", argv[i]);
-                        exit(1);
-                    }
-                    video_dump_limit = n;
-                    if (option_has_value(i, argc, arg, argv[i+1])) {
-                        video_dumpfile_name.erase();
-                        video_dumpfile_name.append(argv[++i]);
-                    }
-                } else {
-                    video_dumpfile_name.erase();
-                    video_dumpfile_name.append(argv[i]);
-                }
-            }
-        } else if (arg == "-admp") {
-            dump_audio = true;
-            if (i < argc - 1 && *argv[i+1] != '-') {
-                unsigned int n = 0;
-                if (get_value (argv[++i], &n)) {
-                    if (n == 0) {
-                        fprintf(stderr, "invalid \"-admp 0 %s\"; -admp n  needs a non-zero value of n\n", argv[i]);
-                        exit(1);
-                    }
-                    audio_dump_limit = n;
-                    if (option_has_value(i, argc, arg, argv[i+1])) {
-                        audio_dumpfile_name.erase();
-                        audio_dumpfile_name.append(argv[++i]);
-                    }
-                } else {
-                    audio_dumpfile_name.erase();
-                    audio_dumpfile_name.append(argv[i]);
-                }
-            }
-        } else if (arg  == "-ca" ) {
-            if (option_has_value(i, argc, arg, argv[i+1])) {
-                coverart_filename.erase();
-                coverart_filename.append(argv[++i]);
-            } else {
-                fprintf(stderr,"option -ca must be followed by a filename for cover-art output\n");
-                exit(1);
-            }
-        } else if (arg == "-bt709") {
-            bt709_fix = true;
-        } else if (arg == "-nohold") {
-            max_connections = 3;
-        } else if (arg == "-al") {
-	    int n;
-            char *end;
-            if (i < argc - 1 && *argv[i+1] != '-') {
-	      n = (int) (strtof(argv[++i], &end) * SECOND_IN_USECS);
-                if (*end == '\0' && n >=0 && n <= 10 * SECOND_IN_USECS) {
-                    audiodelay = n;
-                    continue;
-                }
-            }
-            fprintf(stderr, "invalid argument -al %s: must be a decimal time offset in seconds, range [0,10]\n"
-                    "(like 5 or 4.8, which will be converted to a whole number of microseconds)\n", argv[i]);
-            exit(1);
-	} else {
-            fprintf(stderr, "unknown option %s, stopping (for help use option \"-h\")\n",argv[i]);
-            exit(1);
-        }
-    }
 }
 
 static void process_metadata(int count, const char *dmap_tag, const unsigned char* metadata, int datalen) {
@@ -995,6 +669,7 @@ extern "C" void conn_init (void *cls) {
     open_connections++;
     //LOGD("Open connections: %i", open_connections);
     //video_renderer_update_background(1);
+    update_status("connect", "");
 }
 
 extern "C" void conn_destroy (void *cls) {
@@ -1004,6 +679,7 @@ extern "C" void conn_destroy (void *cls) {
     if (open_connections == 0) {
         remote_clock_offset = 0;
     }
+    update_status("connection destroy", "");
 }
 
 extern "C" void conn_reset (void *cls, int timeouts, bool reset_video) {
@@ -1017,12 +693,14 @@ extern "C" void conn_reset (void *cls, int timeouts, bool reset_video) {
     close_window = reset_video;    /* leave "frozen" window open if reset_video is false */
     raop_stop(raop);
     reset_loop = true;
+    update_status("connection reset", "");
 }
 
 extern "C" void conn_teardown(void *cls, bool *teardown_96, bool *teardown_110) {
     if (*teardown_110 && close_window) {
         reset_loop = true;
     }
+    update_status("connection teardown", "");
 }
 
 extern "C" void audio_process (void *cls, raop_ntp_t *ntp, audio_decode_struct *data) {
@@ -1252,81 +930,14 @@ static void stop_raop_server () {
     return;
 }
 
-int main (int argc, char *argv[]) {
+int uxplay_start (struct uxplay_config config) {
     std::vector<char> server_hw_addr;
     std::string mac_address;
 
-#ifdef SUPPRESS_AVAHI_COMPAT_WARNING
-    // suppress avahi_compat nag message.  avahi emits a "nag" warning (once)
-    // if  getenv("AVAHI_COMPAT_NOWARN") returns null.
-    static char avahi_compat_nowarn[] = "AVAHI_COMPAT_NOWARN=1";
-    if (!getenv("AVAHI_COMPAT_NOWARN")) putenv(avahi_compat_nowarn);
-#endif
-
-    parse_arguments (argc, argv);
-
-#ifdef _WIN32    /*  use utf-8 terminal output; don't buffer stdout in WIN32 when debug_log = false */
-    SetConsoleOutputCP(CP_UTF8);
-    if (!debug_log) {
-        setbuf(stdout, NULL);
-    }
-#endif
+    app_config = config;
+    server_name = app_config.name;
 
     LOGI("UxPlay %s: An Open-Source AirPlay mirroring and audio-streaming server.", VERSION);
-
-    if (audiosink == "0") {
-        use_audio = false;
-        dump_audio = false;
-    }
-    if (dump_video) {
-        if (video_dump_limit > 0) {
-             printf("dump video using \"-vdmp %d %s\"\n", video_dump_limit, video_dumpfile_name.c_str());
-	} else {
-             printf("dump video using \"-vdmp %s\"\n", video_dumpfile_name.c_str());
-        }
-    }
-    if (dump_audio) {
-        if (audio_dump_limit > 0) {
-            printf("dump audio using \"-admp %d %s\"\n", audio_dump_limit, audio_dumpfile_name.c_str());
-        } else {
-            printf("dump audio using \"-admp %s\"\n",  audio_dumpfile_name.c_str());
-        }
-    }
-
-#if __APPLE__
-    /* force use of -nc option on macOS */
-    LOGI("macOS detected: use -nc option as workaround for GStreamer problem");
-    new_window_closing_behavior = false;
-#endif
-
-    if (videosink == "0") {
-        use_video = false;
-	videosink.erase();
-        videosink.append("fakesink");
-	LOGI("video_disabled");
-        display[3] = 1; /* set fps to 1 frame per sec when no video will be shown */
-    }
-
-    if (fullscreen && use_video) {
-        if (videosink == "waylandsink" || videosink == "vaapisink") {
-            videosink.append(" fullscreen=true");
-	}
-    }
-
-    if (videosink == "d3d11videosink"  && use_video) {
-        videosink.append(" fullscreen-toggle-mode=alt-enter");  
-        printf("d3d11videosink is being used with option fullscreen-toggle-mode=alt-enter\n"
-               "Use Alt-Enter key combination to toggle into/out of full-screen mode\n");
-    }
-
-    if (bt709_fix && use_video) {
-        video_parser.append(" ! ");
-        video_parser.append(BT709_FIX);
-    }
-
-    if (do_append_hostname) {
-        append_hostname(server_name);
-    }
 
     if (!gstreamer_init()) {
         LOGE ("stopping");
@@ -1437,4 +1048,5 @@ int main (int argc, char *argv[]) {
     if (coverart_filename.length()) {
 	remove (coverart_filename.c_str());
     }
+    return 0;
 }

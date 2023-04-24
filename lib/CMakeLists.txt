@@ -59,6 +59,13 @@ add_library( airplay  STATIC
              ${DIR_SRCS}
            )
 
+file(GLOB INCLUDE_FILES "*.h")
+set_target_properties(airplay PROPERTIES PUBLIC_HEADER "${INCLUDE_FILES}")
+
+install(TARGETS airplay
+  ARCHIVE DESTINATION lib
+  PUBLIC_HEADER DESTINATION include/airplay)
+
 if ( APPLE )
   target_link_libraries( airplay 
                          pthread

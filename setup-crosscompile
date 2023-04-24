@@ -1,0 +1,2 @@
+#!/bin/bash
+. /opt/huupeos/1.0.0+snapshot/environment-setup-armv8a-oe4t-linux

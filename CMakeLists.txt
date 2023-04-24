@@ -7,6 +7,8 @@ message( STATUS "Project name: " ${PROJECT_NAME} )
 include(GNUInstallDirs)
 
 set ( CMAKE_CXX_STANDARD 11 )
+set (CMAKE_C_FLAGS -fPIC)
+set (CMAKE_CXX_FLAGS -fPIC)
 
 if (ZOOMFIX )
   message (STATUS "cmake option ZOOMFIX is no longer used (if needed, ZOOMFIX is automatically applied if X11 libraries are present)" )
@@ -48,6 +50,25 @@ install( TARGETS  uxplay RUNTIME DESTINATION bin )
 install( FILES uxplay.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1 )
 install( FILES README.md README.txt README.html LICENSE DESTINATION ${CMAKE_INSTALL_DOCDIR} ) 
 install( FILES lib/llhttp/LICENSE-MIT DESTINATION ${CMAKE_INSTALL_DOCDIR}/llhttp ) 
+
+
+add_library( auxplaylib  STATIC
+             uxplay-lib.cpp
+           )
+
+target_link_libraries( auxplaylib
+                   renderers
+                   airplay
+		   )
+
+file(GLOB INCLUDE_FILES "*.h")
+set_target_properties(auxplaylib PROPERTIES PUBLIC_HEADER "${INCLUDE_FILES}")
+
+install(TARGETS auxplaylib
+  ARCHIVE DESTINATION lib
+  PUBLIC_HEADER DESTINATION include/auxplaylib)
+
+
 
 # uninstall target
 if(NOT TARGET uninstall)

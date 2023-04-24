@@ -914,7 +914,7 @@ static void process_metadata(int count, const char *dmap_tag, const unsigned cha
 }
 
 static int parse_dmap_header(const unsigned char *metadata, char *tag, int *len) {
-    const unsigned char *header = metadata;
+    const unsigned char *header = metadata;avdec_
 
     bool istag = true;
     for (int i = 0; i < 4; i++) {

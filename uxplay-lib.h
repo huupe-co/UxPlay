@@ -37,6 +37,7 @@ struct uxplay_config
     char video_decoder[50] = "decodebin";
     char video_converter[50] = "videoconvert";
     void  (*status_callback)(const char *status_string, const char *options);
+    bool debug_log = true;
 };
 
 int uxplay_start(struct uxplay_config config); 

@@ -61,7 +61,7 @@
 #define SECOND_IN_USECS 1000000
 #define SECOND_IN_NSECS 1000000000UL
 #define DEFAULT_NAME "UxPlay"
-#define DEFAULT_DEBUG_LOG false
+#define DEFAULT_DEBUG_LOG true
 #define LOWEST_ALLOWED_PORT 1024
 #define HIGHEST_PORT 65535
 #define NTP_TIMEOUT_LIMIT 5
@@ -950,6 +950,7 @@ int uxplay_start (struct uxplay_config config) {
     video_parser = app_config.video_parser;
     videosink = app_config.videosink;
     new_window_closing_behavior = app_config.new_window_closing_behavior;
+    debug_log = app_config.debug_log;
 
     LOGI("UxPlay %s: An Open-Source AirPlay mirroring and audio-streaming server.", VERSION);
 

@@ -936,6 +936,12 @@ int uxplay_start (struct uxplay_config config) {
 
     app_config = config;
     server_name = app_config.name;
+    video_converter = app_config.video_converter;
+    audiosink = app_config.audiosink;
+    video_decoder = app_config.video_decoder;
+    video_parser = app_config.video_parser;
+    videosink = app_config.videosink;
+    new_window_closing_behavior = app_config.new_window_closing_behavior;
 
     LOGI("UxPlay %s: An Open-Source AirPlay mirroring and audio-streaming server.", VERSION);
 
@@ -950,6 +956,7 @@ int uxplay_start (struct uxplay_config config) {
 
     if (use_audio) {
       audio_renderer_init(render_logger, audiosink.c_str(), &audio_sync, &video_sync);
+      update_status("audio inited", "");
     } else {
         LOGI("audio_disabled");
     }
@@ -958,6 +965,7 @@ int uxplay_start (struct uxplay_config config) {
         video_renderer_init(render_logger, server_name.c_str(), videoflip, video_parser.c_str(),
                             video_decoder.c_str(), video_converter.c_str(), videosink.c_str(), &fullscreen, &video_sync);
         video_renderer_start();
+        update_status("video inited", "");
     }
 
     if (udp[0]) {
@@ -998,6 +1006,7 @@ int uxplay_start (struct uxplay_config config) {
     reconnect:
     compression_type = 0;
     close_window = new_window_closing_behavior; 
+    update_status("main loop started", "");
     main_loop();
     if (relaunch_video || reset_loop) {
         if(reset_loop) {
@@ -1048,5 +1057,10 @@ int uxplay_start (struct uxplay_config config) {
     if (coverart_filename.length()) {
 	remove (coverart_filename.c_str());
     }
+    update_status("stoped", "");
+    return 0;
+}
+
+int uxplay_stop() {
     return 0;
 }

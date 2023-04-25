@@ -23,6 +23,7 @@
 #include "video_renderer.h"
 #include <gst/gst.h>
 #include <gst/app/gstappsrc.h>
+#include "../uxplay-renderer.h"
 
 #define SECOND_IN_NSECS 1000000000UL
 #ifdef X_DISPLAY_FIX
@@ -396,3 +397,13 @@ unsigned int video_renderer_listen(void *loop) {
     return (unsigned int) gst_bus_add_watch(renderer->bus, (GstBusFunc)
                                             gstreamer_pipeline_bus_callback, (gpointer) loop);    
 }  
+
+
+struct uxplay_video_renderer_info get_uxplay_video_renderer_info() {
+    struct uxplay_video_renderer_info result;
+    result.appsrc = renderer->appsrc;
+    result.pipeline = renderer->pipeline;
+    result.sink = renderer->sink;
+    result.bus = renderer->bus;
+    return result;
+}

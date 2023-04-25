@@ -1285,7 +1285,7 @@ int main (int argc, char *argv[]) {
              printf("dump video using \"-vdmp %s\"\n", video_dumpfile_name.c_str());
         }
     }
-    if (dump_audio) {
+    if (dump_audio) { 
         if (audio_dump_limit > 0) {
             printf("dump audio using \"-admp %d %s\"\n", audio_dump_limit, audio_dumpfile_name.c_str());
         } else {

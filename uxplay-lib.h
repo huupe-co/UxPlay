@@ -29,7 +29,13 @@ extern "C" {
 
 struct uxplay_config
 {
+    bool new_window_closing_behavior = false;
     char name[50] = "UxPlay";
+    char videosink[50] = "autovideosink";
+    char audiosink[50] = "autoaudiosink";
+    char video_parser[50] = "h264parse";
+    char video_decoder[50] = "decodebin";
+    char video_converter[50] = "videoconvert";
     void  (*status_callback)(const char *status_string, const char *options);
 };
 

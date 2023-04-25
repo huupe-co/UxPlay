@@ -790,6 +790,7 @@ extern "C" void audio_get_format (void *cls, unsigned char *ct, unsigned short *
 extern "C" void video_report_size(void *cls, float *width_source, float *height_source, float *width, float *height) {
     if (use_video) {
         video_renderer_size(width_source, height_source, width, height);
+        update_status("video_report_size", "");
     }
 }
 

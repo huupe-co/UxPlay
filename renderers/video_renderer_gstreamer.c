@@ -210,6 +210,10 @@ void  video_renderer_init(logger_t *render_logger, const char *server_name, vide
         }
     }
 #endif
+}
+
+void video_renderer_start() {
+    
     gst_element_set_state (renderer->pipeline, GST_STATE_READY);
     GstState state;
     if (gst_element_get_state (renderer->pipeline, &state, NULL, 0)) {
@@ -221,9 +225,7 @@ void  video_renderer_init(logger_t *render_logger, const char *server_name, vide
     } else {
         logger_log(logger, LOGGER_ERR, "Failed to initialize GStreamer video renderer");
     }
-}
 
-void video_renderer_start() {
     gst_element_set_state (renderer->pipeline, GST_STATE_PLAYING);
     gst_video_pipeline_base_time = gst_element_get_base_time(renderer->appsrc);
     renderer->bus = gst_element_get_bus(renderer->pipeline);

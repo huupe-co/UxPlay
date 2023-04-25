@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <atomic>
 
 #ifdef _WIN32  /*modifications for Windows compilation */
 #include <glib.h>
@@ -118,6 +119,7 @@ static unsigned short raop_port;
 static unsigned short airplay_port;
 static uint64_t remote_clock_offset = 0;
 static struct uxplay_config app_config;
+static std::atomic_bool uxplay_stop_flag;
 
 /* 95 byte png file with a 1x1 white square (single pixel): placeholder for coverart*/
 static const unsigned char empty_image[] = {
@@ -251,24 +253,28 @@ guint g_unix_signal_add(gint signum, GSourceFunc handler, gpointer user_data) {
 #endif
 
 static void main_loop()  {
-    guint connection_watch_id = 0;
-    guint gst_bus_watch_id = 0;
-    GMainLoop *loop = g_main_loop_new(NULL,FALSE);
-    relaunch_video = false;
-    if (use_video) {
-        relaunch_video = true;
-        gst_bus_watch_id = (guint) video_renderer_listen((void *)loop);
-    }
-    guint reset_watch_id = g_timeout_add(100, (GSourceFunc) reset_callback, (gpointer) loop);
-    guint sigterm_watch_id = g_unix_signal_add(SIGTERM, (GSourceFunc) sigterm_callback, (gpointer) loop);
-    guint sigint_watch_id = g_unix_signal_add(SIGINT, (GSourceFunc) sigint_callback, (gpointer) loop);
-    g_main_loop_run(loop);
+    // guint connection_watch_id = 0;
+    // guint gst_bus_watch_id = 0;
+    // GMainLoop *loop = g_main_loop_new(NULL,FALSE);
+    // relaunch_video = false;
+    // if (use_video) {
+    //     relaunch_video = true;
+    //     gst_bus_watch_id = (guint) video_renderer_listen((void *)loop);
+    // }
+    // guint reset_watch_id = g_timeout_add(100, (GSourceFunc) reset_callback, (gpointer) loop);
+    // guint sigterm_watch_id = g_unix_signal_add(SIGTERM, (GSourceFunc) sigterm_callback, (gpointer) loop);
+    // guint sigint_watch_id = g_unix_signal_add(SIGINT, (GSourceFunc) sigint_callback, (gpointer) loop);
+    // g_main_loop_run(loop);
 
-    if (gst_bus_watch_id > 0) g_source_remove(gst_bus_watch_id);
-    if (sigint_watch_id > 0) g_source_remove(sigint_watch_id);
-    if (sigterm_watch_id > 0) g_source_remove(sigterm_watch_id);
-    if (reset_watch_id > 0) g_source_remove(reset_watch_id);
-    g_main_loop_unref(loop);
+    // if (gst_bus_watch_id > 0) g_source_remove(gst_bus_watch_id);
+    // if (sigint_watch_id > 0) g_source_remove(sigint_watch_id);
+    // if (sigterm_watch_id > 0) g_source_remove(sigterm_watch_id);
+    // if (reset_watch_id > 0) g_source_remove(reset_watch_id);
+    // g_main_loop_unref(loop);
+    while (!uxplay_stop_flag)
+    {
+        usleep(100);
+    }
 }    
 
 static int parse_hw_addr (std::string str, std::vector<char> &hw_addr) {
@@ -934,6 +940,8 @@ int uxplay_start (struct uxplay_config config) {
     std::vector<char> server_hw_addr;
     std::string mac_address;
 
+    uxplay_stop_flag = false;
+
     app_config = config;
     server_name = app_config.name;
     video_converter = app_config.video_converter;
@@ -1008,6 +1016,7 @@ int uxplay_start (struct uxplay_config config) {
     close_window = new_window_closing_behavior; 
     update_status("main loop started", "");
     main_loop();
+    update_status("main loop stoped", "");
     if (relaunch_video || reset_loop) {
         if(reset_loop) {
             reset_loop = false;
@@ -1062,5 +1071,6 @@ int uxplay_start (struct uxplay_config config) {
 }
 
 int uxplay_stop() {
+    uxplay_stop_flag = true;
     return 0;
 }

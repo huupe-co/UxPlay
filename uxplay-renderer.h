@@ -1,5 +1,5 @@
-#ifndef UXPLAYLIB_H
-#define UXPLAYLIB_H
+#ifndef UXPLAYLIB_RENDERER_H
+#define UXPLAYLIB_RENDERER_H
 
 #include <gst/gst.h>
 
@@ -18,4 +18,4 @@ struct uxplay_video_renderer_info get_uxplay_video_renderer_info();
 }
 #endif
 
-#endif //UXPLAYLIB_H
+#endif //UXPLAYLIB_RENDERER_H

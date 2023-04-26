@@ -27,6 +27,21 @@
 extern "C" {
 #endif
 
+enum uxplay_status {
+    uxplay_status_connect,
+    uxplay_status_connection_destroy,
+    uxplay_status_connection_reset,
+    uxplay_status_connection_teardown,
+    uxplay_status_video_prepare,
+    uxplay_status_video_ready,
+    uxplay_status_play_vidieo,
+    uxplay_status_play_audio,
+    uxplay_status_pause,
+    uxplay_status_stop
+};
+
+typedef enum uxplay_status uxplay_status_t;
+
 struct uxplay_config
 {
     bool new_window_closing_behavior = false;
@@ -36,11 +51,15 @@ struct uxplay_config
     char video_parser[50] = "h264parse";
     char video_decoder[50] = "decodebin";
     char video_converter[50] = "videoconvert";
-    void  (*status_callback)(const char *status_string, const char *options);
+    char audio_dec_aac[50] = "avdec_aac";
+    char audio_dec_alac[50] = "avdec_alac";
+    void  (*status_callback)(uxplay_status_t status, const char *options);
     bool debug_log = true;
 };
 
-int uxplay_start(struct uxplay_config config); 
+int uxplay_start(struct uxplay_config config);
+int uxplay_disconnect_all_clients();
+int uxplay_set_volume(float volume);
 int uxplay_stop();
 
 

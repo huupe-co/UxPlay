@@ -137,11 +137,11 @@ size_t write_coverart(const char *filename, const void *image, size_t len) {
     return count;
 }
 
-static void update_status(const char *status_string, const char *options) {
+static void update_status(uxplay_status_t status, const char *options) {
     if (!app_config.status_callback) {
         return;
     }
-    app_config.status_callback(status_string, options);
+    app_config.status_callback(status, options);
 }  
 
 static void dump_audio_to_file(unsigned char *data, int datalen, unsigned char type) {
@@ -675,7 +675,7 @@ extern "C" void conn_init (void *cls) {
     open_connections++;
     //LOGD("Open connections: %i", open_connections);
     //video_renderer_update_background(1);
-    update_status("connect", "");
+    update_status(uxplay_status_connect, "");
 }
 
 extern "C" void conn_destroy (void *cls) {
@@ -685,7 +685,7 @@ extern "C" void conn_destroy (void *cls) {
     if (open_connections == 0) {
         remote_clock_offset = 0;
     }
-    update_status("connection destroy", "");
+    update_status(uxplay_status_connection_destroy, "");
 }
 
 extern "C" void conn_reset (void *cls, int timeouts, bool reset_video) {
@@ -699,14 +699,14 @@ extern "C" void conn_reset (void *cls, int timeouts, bool reset_video) {
     close_window = reset_video;    /* leave "frozen" window open if reset_video is false */
     raop_stop(raop);
     reset_loop = true;
-    update_status("connection reset", "");
+    update_status(uxplay_status_connection_reset, "");
 }
 
 extern "C" void conn_teardown(void *cls, bool *teardown_96, bool *teardown_110) {
     if (*teardown_110 && close_window) {
         reset_loop = true;
     }
-    update_status("connection teardown", "");
+    update_status(uxplay_status_connection_teardown, "");
 }
 
 extern "C" void audio_process (void *cls, raop_ntp_t *ntp, audio_decode_struct *data) {
@@ -790,7 +790,7 @@ extern "C" void audio_get_format (void *cls, unsigned char *ct, unsigned short *
 extern "C" void video_report_size(void *cls, float *width_source, float *height_source, float *width, float *height) {
     if (use_video) {
         video_renderer_size(width_source, height_source, width, height);
-        update_status("video_report_size", "");
+        update_status(uxplay_status_play_vidieo, "");
     }
 }
 
@@ -966,7 +966,6 @@ int uxplay_start (struct uxplay_config config) {
 
     if (use_audio) {
       audio_renderer_init(render_logger, audiosink.c_str(), &audio_sync, &video_sync);
-      update_status("audio inited", "");
     } else {
         LOGI("audio_disabled");
     }
@@ -974,9 +973,9 @@ int uxplay_start (struct uxplay_config config) {
     if (use_video) {
         video_renderer_init(render_logger, server_name.c_str(), videoflip, video_parser.c_str(),
                             video_decoder.c_str(), video_converter.c_str(), videosink.c_str(), &fullscreen, &video_sync);
-        update_status("video inited", ""); 
+        update_status(uxplay_status_video_prepare, ""); 
         video_renderer_start();
-        update_status("video started", "");
+        update_status(uxplay_status_video_ready, "");
     }
 
     if (udp[0]) {
@@ -1017,9 +1016,7 @@ int uxplay_start (struct uxplay_config config) {
     reconnect:
     compression_type = 0;
     close_window = new_window_closing_behavior; 
-    update_status("main loop started", "");
     main_loop();
-    update_status("main loop stoped", "");
     if (relaunch_video || reset_loop) {
         if(reset_loop) {
             reset_loop = false;
@@ -1069,11 +1066,19 @@ int uxplay_start (struct uxplay_config config) {
     if (coverart_filename.length()) {
 	remove (coverart_filename.c_str());
     }
-    update_status("stoped", "");
     return 0;
 }
 
 int uxplay_stop() {
     uxplay_stop_flag = true;
+    return 0;
+}
+
+int uxplay_disconnect_all_clients() {
+    return 0;
+}
+
+int uxplay_set_volume(float volume) {
+    audio_set_volume(NULL, volume);
     return 0;
 }

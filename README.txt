@@ -402,7 +402,7 @@ below for help with this or other problems.
 The older method which does not drop late video frames worked well on
 more powerful systems, and is still available with the UxPlay option
 "`-vsync no`"; this method is adapted to "live streaming", and may be
-better when Using UxPlay as a second monitor for a Mac computer, for
+better when using UxPlay as a second monitor for a Mac computer, for
 example, while the new default timestamp-based method is best for
 watching a video, to keep lip movements and voices synchronized.
 (Without use of timestamps, video will eventually lag behind audio if it
@@ -449,7 +449,7 @@ options.
 ### **Special instructions for Raspberry Pi (tested on R Pi 4 model B 8GB and R Pi 3 model B+)**:
 
 -   If you use the software-only (h264) video-decoding UxPlay option
-    `-avdec`, it now works better that earlier, with the new default
+    `-avdec`, it now works better than earlier, with the new default
     timestamp-based synchronization to keep audio and video
     synchronized.
 

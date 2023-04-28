@@ -23,6 +23,7 @@
 #include "video_renderer.h"
 #include <gst/gst.h>
 #include <gst/app/gstappsrc.h>
+#include "../uxplay-renderer.h"
 
 #define SECOND_IN_NSECS 1000000000UL
 #ifdef X_DISPLAY_FIX
@@ -209,6 +210,10 @@ void  video_renderer_init(logger_t *render_logger, const char *server_name, vide
         }
     }
 #endif
+}
+
+void video_renderer_start() {
+    
     gst_element_set_state (renderer->pipeline, GST_STATE_READY);
     GstState state;
     if (gst_element_get_state (renderer->pipeline, &state, NULL, 0)) {
@@ -220,9 +225,7 @@ void  video_renderer_init(logger_t *render_logger, const char *server_name, vide
     } else {
         logger_log(logger, LOGGER_ERR, "Failed to initialize GStreamer video renderer");
     }
-}
 
-void video_renderer_start() {
     gst_element_set_state (renderer->pipeline, GST_STATE_PLAYING);
     gst_video_pipeline_base_time = gst_element_get_base_time(renderer->appsrc);
     renderer->bus = gst_element_get_bus(renderer->pipeline);
@@ -396,3 +399,13 @@ unsigned int video_renderer_listen(void *loop) {
     return (unsigned int) gst_bus_add_watch(renderer->bus, (GstBusFunc)
                                             gstreamer_pipeline_bus_callback, (gpointer) loop);    
 }  
+
+
+struct uxplay_video_renderer_info get_uxplay_video_renderer_info() {
+    struct uxplay_video_renderer_info result;
+    result.appsrc = renderer->appsrc;
+    result.pipeline = renderer->pipeline;
+    result.sink = renderer->sink;
+    result.bus = renderer->bus;
+    return result;
+}

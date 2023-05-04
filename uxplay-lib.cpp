@@ -1040,6 +1040,7 @@ int uxplay_start (struct uxplay_config config) {
             LOGI("Re-launching RAOP server...");
             stop_raop_server();
             stop_dnssd();
+            uxplay_stop_flag = false;
             goto restart;
         }
     } else {

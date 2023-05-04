@@ -1075,6 +1075,8 @@ int uxplay_stop() {
 }
 
 int uxplay_disconnect_all_clients() {
+    reset_loop = true;
+    uxplay_stop();
     return 0;
 }
 

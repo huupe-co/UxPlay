@@ -273,10 +273,12 @@ void audio_renderer_render_buffer(unsigned char* data, int *data_len, unsigned s
 
 void audio_renderer_set_volume(float volume) {
     float avol;
-        if (fabs(volume) < 28) {
-	    avol=floorf(((28-fabs(volume))/28)*10)/10;
-    	    g_object_set(renderer->volume, "volume", avol, NULL);
+    if (fabs(volume) < 28) {
+        avol = floorf(((28 - fabs(volume)) / 28) * 10) / 10;
+        if (renderer != NULL && renderer->volume != NULL) {
+            g_object_set(renderer->volume, "volume", avol, NULL);
         }
+    }
 }
 
 void audio_renderer_flush() {

@@ -34,7 +34,7 @@ enum uxplay_status {
     uxplay_status_connection_teardown,
     uxplay_status_video_prepare,
     uxplay_status_video_ready,
-    uxplay_status_play_vidieo,
+    uxplay_status_play_video,
     uxplay_status_play_audio,
     uxplay_status_pause,
     uxplay_status_stop

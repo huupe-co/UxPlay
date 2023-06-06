@@ -1,7 +1,7 @@
 /**
  * RPiPlay - An open-source AirPlay mirroring server for Raspberry Pi
  * Copyright (C) 2019 Florian Draschbacher
- * Modified extensively to become 
+ * Modified extensively to become
  * UxPlay - An open-souce AirPlay mirroring server.
  * Modifications Copyright (C) 2021-23 F. Duncanh
  *
@@ -142,7 +142,7 @@ static void update_status(uxplay_status_t status, const char *options) {
         return;
     }
     app_config.status_callback(status, options);
-}  
+}
 
 static void dump_audio_to_file(unsigned char *data, int datalen, unsigned char type) {
     if (!audio_dumpfile && audio_type != previous_audio_type) {
@@ -173,7 +173,7 @@ static void dump_audio_to_file(unsigned char *data, int datalen, unsigned char t
             if (audio_dump_count == audio_dump_limit) {
                 fclose(audio_dumpfile);
                 audio_dumpfile = NULL;
-            }          
+            }
         }
     }
 }
@@ -184,7 +184,7 @@ static void dump_video_to_file(unsigned char *data, int datalen) {
         fwrite(mark, 1, sizeof(mark), video_dumpfile);
         fclose(video_dumpfile);
         video_dumpfile = NULL;
-        video_dump_count = 0;                     
+        video_dump_count = 0;
     }
 
     if (!video_dumpfile) {
@@ -275,7 +275,7 @@ static void main_loop()  {
     {
         usleep(100);
     }
-}    
+}
 
 static int parse_hw_addr (std::string str, std::vector<char> &hw_addr) {
     for (int i = 0; i < str.length(); i += 3) {
@@ -292,7 +292,7 @@ static std::string find_mac () {
 #ifdef _WIN32
     ULONG buflen = sizeof(IP_ADAPTER_ADDRESSES);
     PIP_ADAPTER_ADDRESSES addresses = (IP_ADAPTER_ADDRESSES*) malloc(buflen);
-    if (addresses == NULL) { 					
+    if (addresses == NULL) {
         return mac;
     }
     if (GetAdaptersAddresses(AF_UNSPEC, 0, NULL, addresses, &buflen) == ERROR_BUFFER_OVERFLOW) {
@@ -402,7 +402,7 @@ static bool get_display_settings (std::string value, unsigned short *w, unsigned
 }
 
 static bool get_value (const char *str, unsigned int *n) {
-    // if n > 0 str must be a positive decimal <= input value *n  
+    // if n > 0 str must be a positive decimal <= input value *n
     // if n = 0, str must be a non-negative decimal
     if (strlen(str) == 0 || strlen(str) > 10 || str[0] == '-') return false;
     char *end;
@@ -489,8 +489,8 @@ static void process_metadata(int count, const char *dmap_tag, const unsigned cha
     }
 
     /* UTF-8 String-type DMAP tags seen in Apple Music Radio are processed here.   *
-     * (DMAP tags "asal", "asar", "ascp", "asgn", "minm" ). TODO expand this */  
-    
+     * (DMAP tags "asal", "asar", "ascp", "asgn", "minm" ). TODO expand this */
+
     if (datalen == 0) {
         return;
     }
@@ -513,7 +513,7 @@ static void process_metadata(int count, const char *dmap_tag, const unsigned cha
                 dmap_type = 0;
                 break;
             }
-            break;    
+            break;
         case 'c':
             switch (dmap_tag[3]) {
             case 'm':
@@ -618,7 +618,7 @@ static int parse_dmap_header(const unsigned char *metadata, char *tag, int *len)
 }
 
 static int register_dnssd() {
-    int dnssd_error;    
+    int dnssd_error;
     if ((dnssd_error = dnssd_register_raop(dnssd, raop_port))) {
         if (dnssd_error == -65537) {
              LOGE("No DNS-SD Server found (DNSServiceRegister call returned kDNSServiceErr_Unknown)");
@@ -652,7 +652,7 @@ static void stop_dnssd() {
         dnssd_destroy(dnssd);
         dnssd = NULL;
 	return;
-    }	
+    }
 }
 
 static int start_dnssd(std::vector<char> hw_addr, std::string name) {
@@ -777,7 +777,7 @@ extern "C" void audio_get_format (void *cls, unsigned char *ct, unsigned short *
         audio_dumpfile = NULL;
     }
     audio_type = type;
-    
+
     if (use_audio) {
       audio_renderer_start(ct);
     }
@@ -790,7 +790,7 @@ extern "C" void audio_get_format (void *cls, unsigned char *ct, unsigned short *
 extern "C" void video_report_size(void *cls, float *width_source, float *height_source, float *width, float *height) {
     if (use_video) {
         video_renderer_size(width_source, height_source, width, height);
-        update_status(uxplay_status_play_vidieo, "");
+        update_status(uxplay_status_play_video, "");
     }
 }
 
@@ -881,7 +881,7 @@ int start_raop_server (unsigned short display[5], unsigned short tcp[3], unsigne
     raop_cbs.video_report_size = video_report_size;
     raop_cbs.audio_set_metadata = audio_set_metadata;
     raop_cbs.audio_set_coverart = audio_set_coverart;
-    
+
     /* set max number of connections = 2 to protect against capture by new client */
     raop = raop_init(max_connections, &raop_cbs);
     if (raop == NULL) {
@@ -897,7 +897,7 @@ int start_raop_server (unsigned short display[5], unsigned short tcp[3], unsigne
     if (display[2]) raop_set_plist(raop, "refreshRate", (int) display[2]);
     if (display[3]) raop_set_plist(raop, "maxFPS", (int) display[3]);
     if (display[4]) raop_set_plist(raop, "overscanned", (int) display[4]);
- 
+
     if (show_client_FPS_data) raop_set_plist(raop, "clientFPSdata", 1);
     raop_set_plist(raop, "max_ntp_timeouts", max_ntp_timeouts);
     if (audiodelay >= 0) raop_set_plist(raop, "audio_delay_micros", audiodelay);
@@ -905,7 +905,7 @@ int start_raop_server (unsigned short display[5], unsigned short tcp[3], unsigne
     /* network port selection (ports listed as "0" will be dynamically assigned) */
     raop_set_tcp_ports(raop, tcp);
     raop_set_udp_ports(raop, udp);
-    
+
     raop_set_log_callback(raop, log_callback, NULL);
     raop_set_log_level(raop, debug_log ? RAOP_LOG_DEBUG : LOGGER_INFO);
 
@@ -916,7 +916,7 @@ int start_raop_server (unsigned short display[5], unsigned short tcp[3], unsigne
     if (tcp[2]) {
         airplay_port = tcp[2];
     } else {
-        /* is there a problem if this coincides with a randomly-selected tcp raop_mirror_data port? 
+        /* is there a problem if this coincides with a randomly-selected tcp raop_mirror_data port?
          * probably not, as the airplay port is only used for initial client contact */
         airplay_port = (raop_port != HIGHEST_PORT ? raop_port + 1 : raop_port - 1);
     }
@@ -973,7 +973,7 @@ int uxplay_start (struct uxplay_config config) {
     if (use_video) {
         video_renderer_init(render_logger, server_name.c_str(), videoflip, video_parser.c_str(),
                             video_decoder.c_str(), video_converter.c_str(), videosink.c_str(), &fullscreen, &video_sync);
-        update_status(uxplay_status_video_prepare, ""); 
+        update_status(uxplay_status_video_prepare, "");
         video_renderer_start();
         update_status(uxplay_status_video_ready, "");
     }
@@ -1015,7 +1015,7 @@ int uxplay_start (struct uxplay_config config) {
     }
     reconnect:
     compression_type = 0;
-    close_window = new_window_closing_behavior; 
+    close_window = new_window_closing_behavior;
     main_loop();
     if (relaunch_video || reset_loop) {
         if(reset_loop) {

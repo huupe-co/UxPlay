@@ -45,6 +45,7 @@ static bool use_x11 = false;
 #endif
 static bool logger_debug = false;
 static bool video_terminate = false;
+static float start_position = 0.0f;
 
 #define NCODECS  2   /* renderers for h264 and h265 */
 
@@ -759,6 +760,11 @@ bool video_get_playback_info(double *duration, double *position, float *rate) {
                GST_TIME_ARGS (pos), GST_TIME_ARGS (renderer->duration), gst_element_state_get_name(state));
 
     return true;
+}
+
+void video_renderer_set_start(float position) {
+    start_position = position;
+    logger_log(logger, LOGGER_DEBUG, "register HLS video start position  %f", start_position);    
 }
 
 void video_renderer_seek(float position) {
